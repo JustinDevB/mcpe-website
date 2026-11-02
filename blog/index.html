@@ -1,0 +1,81 @@
+---
+layout: default
+title: Server News
+description: News, announcements, updates, and stories from MinecraftPlanetEarth.
+permalink: /blog/
+---
+
+<main id="main" class="blog-page">
+    <section class="blog-hero">
+        <div class="wrap">
+            <p class="section-kicker"><span>01</span> THE LATEST FROM OUR WORLD</p>
+            <h1>News &amp; <em>announcements.</em></h1>
+            <p class="blog-intro">
+                Follow the latest developments, updates, and stories from
+                MinecraftPlanetEarth. The world never stands still.
+            </p>
+        </div>
+    </section>
+
+    <section class="blog-content section-space">
+        <div class="wrap">
+            <div class="blog-section-heading">
+                <div>
+                    <p class="section-kicker">FROM THE COMMUNITY</p>
+                    <h2>Latest updates</h2>
+                </div>
+                <span class="blog-post-count">
+          {{ site.posts | size }} {% if site.posts.size == 1 %}ARTICLE{% else %}ARTICLES{% endif %}
+        </span>
+            </div>
+
+            {% if site.posts.size > 0 %}
+            <div class="blog-list">
+                {% for post in site.posts %}
+                <article class="blog-card reveal">
+                    <div class="blog-card-meta">
+                        <time datetime="{{ post.date | date_to_xmlschema }}">
+                            {{ post.date | date: "%B %-d, %Y" }}
+                        </time>
+
+                        {% if post.categories.size > 0 %}
+                        <span class="blog-category">
+                    {{ post.categories | first | replace: "-", " " }}
+                  </span>
+                        {% endif %}
+                    </div>
+
+                    <h3>
+                        <a href="{{ post.url | relative_url }}">
+                            {{ post.title | escape }}
+                        </a>
+                    </h3>
+
+                    {% if post.description %}
+                    <p>{{ post.description | escape }}</p>
+                    {% else %}
+                    <p>{{ post.excerpt | strip_html | strip_newlines | truncate: 220 }}</p>
+                    {% endif %}
+
+                    <a class="text-link" href="{{ post.url | relative_url }}">
+                        READ ARTICLE <span aria-hidden="true">→</span>
+                    </a>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="blog-empty">
+                <span class="blog-empty-mark" aria-hidden="true">✳</span>
+                <h3>The next chapter is being written.</h3>
+                <p>
+                    There aren't any news articles yet. Check back soon for
+                    announcements and updates from MinecraftPlanetEarth.
+                </p>
+                <a class="button button-primary" href="{{ '/' | relative_url }}">
+                    Return home <span aria-hidden="true">→</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</main>

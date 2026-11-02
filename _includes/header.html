@@ -1,0 +1,38 @@
+<header class="site-header" id="top">
+    <div class="header-inner wrap">
+        <a class="brand" href="{{ '/' | relative_url }}" aria-label="MinecraftPlanetEarth home">
+            <img src="{{ '/assets/server-icon.png' | relative_url }}" width="42" height="42" alt="" class="brand-icon">
+            <span class="brand-wordmark"><strong>MINECRAFT</strong><b>PLANET EARTH</b></span>
+        </a>
+
+        <nav class="desktop-nav" aria-label="Main navigation">
+            <a href="{{ '/' | relative_url }}#features">Features</a>
+            <a href="https://map.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Live map ↗</a>
+            <a href="https://docs.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Wiki</a>
+            <a href="{{ '/blog/' | relative_url }}">News</a>
+            <a href="https://discord.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Discord</a>
+        </nav>
+
+        <div class="header-actions">
+      <span class="header-edition">
+        <span class="status-dot status-pending" id="header-status-dot"></span>
+        <span id="header-status-text">Java Edition</span>
+      </span>
+            <button class="button button-small button-primary copy-ip" type="button" data-copy-ip>
+                Play now <span aria-hidden="true">↗</span>
+            </button>
+            <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation" aria-controls="mobile-nav" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </div>
+
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden>
+        <a href="{{ '/' | relative_url }}#features">Features</a>
+        <a href="https://map.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Live map ↗</a>
+        <a href="https://docs.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Wiki &amp; guides ↗</a>
+        <a href="{{ '/blog/' | relative_url }}">Server News</a>
+        <a href="https://discord.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Join Discord ↗</a>
+        <a href="https://shop.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Store ↗</a>
+    </nav>
+</header>

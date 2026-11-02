@@ -1,0 +1,21 @@
+title: MinecraftPlanetEarth
+description: >-
+  The original Minecraft Earth server. Player-built nations.
+  A story still being written since 2013.
+
+url: "https://minecraftplanetearth.com"
+baseurl: ""
+
+markdown: kramdown
+permalink: /blog/:year/:month/:day/:title/
+
+plugins:
+  - jekyll-feed
+
+feed:
+  path: feed.xml
+
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock

@@ -1,0 +1,34 @@
+
+<footer class="site-footer">
+    <div class="wrap footer-main">
+        <div class="footer-brand">
+            <a class="brand" href="{{ '/' | relative_url }}">
+                <img src="{{ '/assets/server-icon.png' | relative_url }}" width="38" height="38" alt="" class="brand-icon">
+                <span class="brand-wordmark"><strong>MINECRAFT</strong><b>PLANET EARTH</b></span>
+            </a>
+            <p>A player-written history.<br>Since 2013.</p>
+        </div>
+
+        <div class="footer-links">
+            <div>
+                <span>EXPLORE</span>
+                <a href="{{ '/' | relative_url }}#features">Features</a>
+                <a href="{{ '/' | relative_url }}#legacy">Our story</a>
+                <a href="{{ '/blog/' | relative_url }}">Server news</a>
+            </div>
+            <div>
+                <span>RESOURCES</span>
+                <a href="https://map.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Live map ↗</a>
+                <a href="https://docs.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Wiki &amp; guides ↗</a>
+                <a href="https://shop.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Store ↗</a>
+                <a href="https://discord.minecraftplanetearth.com/" target="_blank" rel="noopener noreferrer">Discord ↗</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="wrap footer-bottom">
+        <span>© <span id="copyright-year">{{ site.time | date: "%Y" }}</span> MINECRAFTPLANETEARTH</span>
+        <span>INDEPENDENT MINECRAFT COMMUNITY · NOT AFFILIATED WITH MOJANG OR MICROSOFT</span>
+        <a href="{{ '/' | relative_url }}#top">BACK TO TOP ↑</a>
+    </div>
+</footer>
