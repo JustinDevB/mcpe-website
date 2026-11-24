@@ -1,0 +1,179 @@
+
+name: Discord News Announcements
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '_posts/**'
+      - '.github/workflows/discord-announcements.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect and announce new posts
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+            echo "::error::DISCORD_WEBHOOK_URL secret is missing."
+            exit 1
+          fi
+
+          if [[ "$BEFORE" =~ ^0+$ ]]; then
+            echo "Initial commit detected. Skipping announcements."
+            exit 0
+          fi
+
+          mapfile -t new_posts < <(
+            git diff --diff-filter=A --name-only \
+              "$BEFORE" "$AFTER" -- '_posts/*.md'
+          )
+
+          if [[ ${#new_posts[@]} -eq 0 ]]; then
+            echo "No new articles detected."
+            exit 0
+          fi
+
+          for file in "${new_posts[@]}"; do
+            echo "Processing: $file"
+
+            post_json="$(POST_FILE="$file" ruby <<'RUBY'
+          require "yaml"
+          require "date"
+          require "json"
+
+          file = ENV.fetch("POST_FILE")
+          content = File.read(file)
+
+          match = content.match(/\A---\s*\r?\n(.*?)\r?\n---\s*(?:\r?\n|\z)/m)
+          abort "Missing YAML front matter: #{file}" unless match
+
+          data = YAML.safe_load(
+            match[1],
+            permitted_classes: [Date, Time],
+            aliases: true
+          ) || {}
+
+          filename = File.basename(file)
+          parts = filename.match(/\A(\d{4})-(\d{2})-(\d{2})-(.+)\.md\z/)
+          abort "Invalid Jekyll post filename: #{filename}" unless parts
+
+          year, month, day, slug = parts.captures
+          date = Date.new(year.to_i, month.to_i, day.to_i)
+
+          config = YAML.safe_load(File.read("_config.yml")) || {}
+
+          permalink = config.fetch(
+            "permalink",
+            "/:categories/:year/:month/:day/:title:output_ext"
+          )
+
+          categories = Array(data["categories"]).join("/")
+
+          path = permalink
+            .gsub(":year", date.strftime("%Y"))
+            .gsub(":month", date.strftime("%m"))
+            .gsub(":day", date.strftime("%d"))
+            .gsub(":title", slug)
+            .gsub(":categories", categories)
+            .gsub(":output_ext", ".html")
+
+          site_url = config.fetch("url").to_s.sub(/\/+\z/, "")
+          baseurl = config.fetch("baseurl", "").to_s.sub(/\/+\z/, "")
+
+          article_url = "#{site_url}#{baseurl}#{path}"
+
+          title = data["title"].to_s.strip
+          title = slug.tr("-", " ").capitalize if title.empty?
+
+          description = data["description"].to_s.strip
+          description = description[0, 4000]
+
+          puts JSON.generate({
+            title: title[0, 256],
+            description: description,
+            url: article_url
+          })
+          RUBY
+          )"
+
+            title="$(jq -r '.title' <<< "$post_json")"
+            description="$(jq -r '.description' <<< "$post_json")"
+            article_url="$(jq -r '.url' <<< "$post_json")"
+
+            echo "Article URL: $article_url"
+
+            # Wait for GitHub Pages to publish the article.
+            published=false
+
+            for attempt in {1..30}; do
+              if curl -fsSL "$article_url" -o /dev/null 2>/dev/null; then
+                published=true
+                break
+              fi
+
+              echo "Waiting for Pages deployment ($attempt/30)..."
+              sleep 20
+            done
+
+            if [[ "$published" != "true" ]]; then
+              echo "::error::Article was not published within 10 minutes: $article_url"
+              exit 1
+            fi
+
+            payload="$(jq -n \
+              --arg title "$title" \
+              --arg description "$description" \
+              --arg url "$article_url" \
+              '{
+                username: "MinecraftPlanetEarth",
+                embeds: [{
+                  title: $title,
+                  url: $url,
+                  description: (
+                    if $description == ""
+                    then "A new article has been published on MinecraftPlanetEarth."
+                    else $description
+                    end
+                  ),
+                  color: 5793266,
+                  footer: {
+                    text: "MinecraftPlanetEarth · Server News"
+                  }
+                }],
+                allowed_mentions: {
+                  parse: []
+                }
+              }'
+            )"
+
+            response_code="$(curl -sS -o /dev/null -w "%{http_code}" \
+              -H "Content-Type: application/json" \
+              -X POST \
+              -d "$payload" \
+              "$DISCORD_WEBHOOK_URL")"
+
+            if [[ "$response_code" != "204" && "$response_code" != "200" ]]; then
+              echo "::error::Discord webhook returned HTTP $response_code"
+              exit 1
+            fi
+
+            echo "Successfully announced: $title"
+          done
