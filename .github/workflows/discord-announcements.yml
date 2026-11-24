@@ -71,6 +71,22 @@ jobs:
             aliases: true
           ) || {}
 
+          body = content.sub(match[0], "").strip
+
+          # Convert common Markdown formatting into readable Discord text.
+          body = body.gsub(/!\[([^\]]*)\]\([^)]+\)/, '[Image: \1]')
+          body = body.gsub(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/, '\1 — \2')
+          body = body.gsub(/^#{1,6}\s+/, "")
+          body = body.gsub(/^\s*[-*+]\s+/, "• ")
+          body = body.gsub(/^\s*\d+\.\s+/, "• ")
+          body = body.gsub(/(\*\*|__)(.*?)\1/m, '\2')
+          body = body.gsub(/(\*|_)(.*?)\1/m, '\2')
+          body = body.gsub(/~~(.*?)~~/m, '\1')
+          body = body.gsub(/`{1,3}([^`]+)`{1,3}/m, '\1')
+          body = body.gsub(/^\s*>\s?/, "")
+          body = body.gsub(/\n{3,}/, "\n\n")
+          body = body.strip
+
           filename = File.basename(file)
           parts = filename.match(/\A(\d{4})-(\d{2})-(\d{2})-(.+)\.md\z/)
           abort "Invalid Jekyll post filename: #{filename}" unless parts
@@ -79,7 +95,6 @@ jobs:
           date = Date.new(year.to_i, month.to_i, day.to_i)
 
           config = YAML.safe_load(File.read("_config.yml")) || {}
-
           permalink = config.fetch(
             "permalink",
             "/:categories/:year/:month/:day/:title:output_ext"
@@ -97,30 +112,25 @@ jobs:
 
           site_url = config.fetch("url").to_s.sub(/\/+\z/, "")
           baseurl = config.fetch("baseurl", "").to_s.sub(/\/+\z/, "")
-
           article_url = "#{site_url}#{baseurl}#{path}"
 
           title = data["title"].to_s.strip
           title = slug.tr("-", " ").capitalize if title.empty?
 
-          description = data["description"].to_s.strip
-          description = description[0, 4000]
-
           puts JSON.generate({
             title: title[0, 256],
-            description: description,
+            body: body,
             url: article_url
           })
           RUBY
           )"
 
             title="$(jq -r '.title' <<< "$post_json")"
-            description="$(jq -r '.description' <<< "$post_json")"
+            body="$(jq -r '.body' <<< "$post_json")"
             article_url="$(jq -r '.url' <<< "$post_json")"
 
             echo "Article URL: $article_url"
 
-            # Wait for GitHub Pages to publish the article.
             published=false
 
             for attempt in {1..30}; do
@@ -138,21 +148,32 @@ jobs:
               exit 1
             fi
 
+            # Discord embed description limit is 4,096 characters.
+            # Reserve room for the full-article link if truncation is needed.
+            read_more=$'\n\n[Read the full article]('"$article_url"')'
+            body_length=${#body}
+            available_length=$((4096 - ${#read_more}))
+
+            if (( body_length > 4096 )); then
+              body="${body:0:available_length}"
+              body="${body% *}..."
+              body+="$read_more"
+            fi
+
+            if [[ -z "$body" ]]; then
+              body="[Read the full article]($article_url)"
+            fi
+
             payload="$(jq -n \
               --arg title "$title" \
-              --arg description "$description" \
+              --arg description "$body" \
               --arg url "$article_url" \
               '{
                 username: "MinecraftPlanetEarth",
                 embeds: [{
                   title: $title,
                   url: $url,
-                  description: (
-                    if $description == ""
-                    then "A new article has been published on MinecraftPlanetEarth."
-                    else $description
-                    end
-                  ),
+                  description: $description,
                   color: 5793266,
                   footer: {
                     text: "MinecraftPlanetEarth · Server News"
