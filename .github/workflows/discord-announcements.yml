@@ -76,7 +76,7 @@ jobs:
           # Convert common Markdown formatting into readable Discord text.
           body = body.gsub(/!\[([^\]]*)\]\([^)]+\)/, '[Image: \1]')
           body = body.gsub(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/, '\1 — \2')
-          body = body.gsub(/^#{1,6}\s+/, "")
+          body = body.gsub(/^\#{1,6}\s+/, "")
           body = body.gsub(/^\s*[-*+]\s+/, "• ")
           body = body.gsub(/^\s*\d+\.\s+/, "• ")
           body = body.gsub(/(\*\*|__)(.*?)\1/m, '\2')
@@ -87,6 +87,7 @@ jobs:
           body = body.gsub(/\n{3,}/, "\n\n")
           body = body.strip
 
+          # Build the public article URL using the Jekyll permalink.
           filename = File.basename(file)
           parts = filename.match(/\A(\d{4})-(\d{2})-(\d{2})-(.+)\.md\z/)
           abort "Invalid Jekyll post filename: #{filename}" unless parts
@@ -95,6 +96,7 @@ jobs:
           date = Date.new(year.to_i, month.to_i, day.to_i)
 
           config = YAML.safe_load(File.read("_config.yml")) || {}
+
           permalink = config.fetch(
             "permalink",
             "/:categories/:year/:month/:day/:title:output_ext"
@@ -112,6 +114,7 @@ jobs:
 
           site_url = config.fetch("url").to_s.sub(/\/+\z/, "")
           baseurl = config.fetch("baseurl", "").to_s.sub(/\/+\z/, "")
+
           article_url = "#{site_url}#{baseurl}#{path}"
 
           title = data["title"].to_s.strip
@@ -131,6 +134,7 @@ jobs:
 
             echo "Article URL: $article_url"
 
+            # Wait for GitHub Pages to publish the article.
             published=false
 
             for attempt in {1..30}; do
@@ -148,13 +152,11 @@ jobs:
               exit 1
             fi
 
-            # Discord embed description limit is 4,096 characters.
-            # Reserve room for the full-article link if truncation is needed.
+            # Discord embed descriptions have a 4,096-character limit.
             read_more=$'\n\n[Read the full article]('"$article_url"')'
-            body_length=${#body}
-            available_length=$((4096 - ${#read_more}))
 
-            if (( body_length > 4096 )); then
+            if (( ${#body} > 4096 )); then
+              available_length=$((4096 - ${#read_more} - 3))
               body="${body:0:available_length}"
               body="${body% *}..."
               body+="$read_more"
